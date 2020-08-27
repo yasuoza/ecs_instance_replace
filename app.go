@@ -299,6 +299,16 @@ func (a *App) WaitTasksMigration(clusterArn string, timeout time.Duration, maxAt
 	return err
 }
 
+// DeregisterContainerInstance deregisters target instance from ECS cluster.
+func (a *App) DeregisterContainerInstance(clusterArn string, containerInstanceArn string) error {
+	_, err := a.ecs.DeregisterContainerInstance(&ecs.DeregisterContainerInstanceInput{
+		Cluster:           aws.String(clusterArn),
+		ContainerInstance: aws.String(containerInstanceArn),
+		Force:             aws.Bool(true),
+	})
+	return err
+}
+
 // RemoveInstanceFromScaleInProtection removes target instance from scale-in protection.
 func (a *App) RemoveInstanceFromScaleInProtection(scalingGroup *autoscaling.Group) error {
 	_, err := a.asg.SetInstanceProtection(&autoscaling.SetInstanceProtectionInput{
