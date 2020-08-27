@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/mitchellh/cli"
 	instance_replace "github.com/yasuoza/ecs_instance_replace"
@@ -111,32 +110,56 @@ func (c *ReplaceCommand) run(instanceId string) error {
 
 func replace(app *instance_replace.App, instanceId string, scalingGroup *autoscaling.Group, clusterArn string, containerInstanceArn string) error {
 	timeout := 15 * time.Minute
-	newDesiredCnt := aws.Int64Value(scalingGroup.DesiredCapacity) + 1
+	newDesiredCnt := *scalingGroup.DesiredCapacity + 1
 	newMaxSize := int64(math.Max(float64(newDesiredCnt), float64(*scalingGroup.MaxSize)))
 
 	if err := app.UpdateAutoScalingGroupCapacity(scalingGroup, newDesiredCnt, newMaxSize); err != nil {
 		return err
 	}
+	log.Printf(
+		"Auto Scaling group %s is updated to DesiredCapacity: %d, MaxSize: %d\n",
+		*scalingGroup.AutoScalingGroupName, newDesiredCnt, newMaxSize,
+	)
+
 	if err := app.WaitContainerInstanceActive(clusterArn, newDesiredCnt, timeout); err != nil {
 		return err
 	}
+
 	if err := app.DrainTargetContainerInstance(clusterArn, containerInstanceArn); err != nil {
 		return err
 	}
+	log.Printf("Container instance %s is marked DRAINING\n", containerInstanceArn)
+
 	if err := app.WaitTargetContainerInstanceDrained(clusterArn, containerInstanceArn, timeout); err != nil {
 		return err
 	}
+
 	if err := app.WaitTasksMigration(clusterArn, timeout, 240); err != nil {
 		return err
 	}
-	if err := app.RemoveInstanceFromScaleInProtection(scalingGroup); err != nil {
+
+	if err := app.DeregisterContainerInstance(clusterArn, containerInstanceArn); err != nil {
 		return err
 	}
-	if err := app.UpdateAutoScalingGroupCapacity(scalingGroup, newDesiredCnt-1, aws.Int64Value(scalingGroup.MaxSize)); err != nil {
+	log.Printf("Container instance %s is deregistered\n", containerInstanceArn)
+
+	if err := app.TerminateInstance(scalingGroup); err != nil {
 		return err
 	}
+	log.Printf("Desired capacity of %s is reverted to %d\n", *scalingGroup.AutoScalingGroupName, *scalingGroup.DesiredCapacity)
+
+	if newMaxSize > *scalingGroup.MaxSize {
+		if err := app.UpdateAutoScalingGroupMaxSize(scalingGroup, *scalingGroup.MaxSize); err != nil {
+			return err
+		}
+		log.Printf(
+			"Max size of Auto Scaling group %s is reverted to %d\n", *scalingGroup.AutoScalingGroupName, *scalingGroup.MaxSize,
+		)
+	}
+
 	if err := app.WaitInstanceTermination(timeout); err != nil {
 		return err
 	}
+
 	return nil
 }

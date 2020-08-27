@@ -142,15 +142,18 @@ func (a *App) UpdateAutoScalingGroupCapacity(scalingGroup *autoscaling.Group, ne
 		DesiredCapacity:      aws.Int64(newDesiredCnt),
 		MaxSize:              aws.Int64(newMaxSize),
 	}
-	if _, err := a.asg.UpdateAutoScalingGroup(params); err != nil {
-		return err
-	}
+	_, err := a.asg.UpdateAutoScalingGroup(params)
+	return err
+}
 
-	log.Printf(
-		"Auto Scaling group %s is updated to desired_capacity: %d, max_size: %d\n",
-		*scalingGroup.AutoScalingGroupName, newDesiredCnt, newMaxSize,
-	)
-	return nil
+// UpdateAutoScalingGroupMaxSize updates Auto Scaling Group's MaxSize.
+func (a *App) UpdateAutoScalingGroupMaxSize(scalingGroup *autoscaling.Group, newMaxSize int64) error {
+	params := &autoscaling.UpdateAutoScalingGroupInput{
+		AutoScalingGroupName: scalingGroup.AutoScalingGroupName,
+		MaxSize:              aws.Int64(newMaxSize),
+	}
+	_, err := a.asg.UpdateAutoScalingGroup(params)
+	return err
 }
 
 // WaitContainerInstanceActive waits until container instance is ACTIVE.
@@ -196,12 +199,7 @@ func (a *App) DrainTargetContainerInstance(clusterArn string, containerInstanceA
 		ContainerInstances: aws.StringSlice([]string{containerInstanceArn}),
 		Status:             aws.String("DRAINING"),
 	})
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Container instance %s is marked DRAINING\n", containerInstanceArn)
-	return nil
+	return err
 }
 
 // WaitTargetContainerInstanceDrained waits until container instance drained.
@@ -223,6 +221,8 @@ func (a *App) WaitTargetContainerInstanceDrained(clusterArn string, containerIns
 				return
 			}
 
+			// Theoretically, we have only one container instance waiting to be drained.
+			// But for safety, we walk through all retreived container instances.
 			runingCnt := int64(0)
 			for _, inst := range res.ContainerInstances {
 				log.Printf(
@@ -251,12 +251,11 @@ func (a *App) WaitTargetContainerInstanceDrained(clusterArn string, containerIns
 
 // WaitTasksMigration waits until cluster's services are all stable.
 func (a *App) WaitTasksMigration(clusterArn string, timeout time.Duration, maxAttempts int) error {
-	log.Println("Waiting all tasks are RUNNING")
-
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	go func() {
+		log.Println("Waiting all tasks are RUNNING")
 		for {
 			tick := time.Tick(SleepInterval)
 			select {
@@ -309,8 +308,8 @@ func (a *App) DeregisterContainerInstance(clusterArn string, containerInstanceAr
 	return err
 }
 
-// RemoveInstanceFromScaleInProtection removes target instance from scale-in protection.
-func (a *App) RemoveInstanceFromScaleInProtection(scalingGroup *autoscaling.Group) error {
+// TerminateInstance removes target instance from scale-in protection and decrement desired capacity.
+func (a *App) TerminateInstance(scalingGroup *autoscaling.Group) error {
 	_, err := a.asg.SetInstanceProtection(&autoscaling.SetInstanceProtectionInput{
 		AutoScalingGroupName: scalingGroup.AutoScalingGroupName,
 		InstanceIds:          aws.StringSlice([]string{a.instanceId}),
@@ -324,19 +323,16 @@ func (a *App) RemoveInstanceFromScaleInProtection(scalingGroup *autoscaling.Grou
 		InstanceId:                     aws.String(a.instanceId),
 		ShouldDecrementDesiredCapacity: aws.Bool(true),
 	})
-
-	log.Printf("Desired capacity of %s is reverted\n", *scalingGroup.AutoScalingGroupName)
 	return err
 }
 
 // WaitInstanceTermination waits until target instance is terminated.
 func (a *App) WaitInstanceTermination(timeout time.Duration) error {
-	log.Printf("Waiting instance %s to be terminated\n", a.instanceId)
-
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	go func() {
+		log.Printf("Waiting instance %s to be terminated\n", a.instanceId)
 		for {
 			tick := time.Tick(SleepInterval)
 			select {
