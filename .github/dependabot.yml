@@ -3,10 +3,16 @@ updates:
 - package-ecosystem: github-actions
   directory: "/"
   schedule:
+    # Every friday at 00:00 JST
     interval: weekly
+    day: thursday
+    time: "15:00"
   open-pull-requests-limit: 10
 - package-ecosystem: gomod
   directory: "/"
   schedule:
+    # Every friday at 00:00 JST
     interval: weekly
+    day: thursday
+    time: "15:00"
   open-pull-requests-limit: 10
