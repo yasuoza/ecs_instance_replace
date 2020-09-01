@@ -1,4 +1,4 @@
-# ecs_instance_replace ![test](https://github.com/yasuoza/ecs_instance_replace/workflows/test/badge.svg?branch=master&event=push)
+# ecs_instance_replace ![test](https://github.com/yasuoza/ecs_instance_replace/workflows/test/badge.svg?branch=master&event=push) ![CodeQL](https://github.com/yasuoza/ecs_instance_replace/workflows/CodeQL/badge.svg?branch=master)
 
 Replace EC2(ECS Container) instance which is belongs to Auto Scaling Group.
 
