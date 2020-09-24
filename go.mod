@@ -4,5 +4,5 @@ go 1.15
 
 require (
 	github.com/aws/aws-sdk-go v1.34.20
-	github.com/mitchellh/cli v1.1.1
+	github.com/mitchellh/cli v1.1.2
 )
