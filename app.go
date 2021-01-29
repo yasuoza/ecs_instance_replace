@@ -48,6 +48,10 @@ func (a *App) GetScalingGroup() (*autoscaling.Group, error) {
 		return nil, err
 	}
 
+	if len(inst.AutoScalingInstances) != 1 {
+		return nil, fmt.Errorf("failed to describe autoscaling instances for %s", a.instanceId)
+	}
+
 	res, err := a.asg.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{AutoScalingGroupNames: []*string{inst.AutoScalingInstances[0].AutoScalingGroupName}})
 	if err != nil {
 		return nil, err
