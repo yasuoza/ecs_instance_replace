@@ -4,7 +4,7 @@ export GO111MODULE := on
 .PHONY: test binary install clean
 
 cmd/ecs_instance_replace/ecs_instance_replace: *.go cmd/ecs_instance_replace/*.go go.*
-	cd cmd/ecs_instance_replace && go build -trimpath -ldflags "-s -w -X main.Version=${GIT_VER}"
+	go build -trimpath -ldflags "-s -w -X main.Version=${GIT_VER}" -o ecs_instance_replace cmd/ecs_instance_replace/main.go
 
 test:
 	go test -v .
