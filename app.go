@@ -272,7 +272,7 @@ func (a *App) WaitTasksMigration(clusterArn string, timeout time.Duration, maxAt
 	}()
 
 	var nextToken *string
-	sArns := []*string{}
+	var sArns []*string
 	for {
 		res, err := a.ecs.ListServices(&ecs.ListServicesInput{
 			Cluster:    aws.String(clusterArn),
@@ -289,17 +289,29 @@ func (a *App) WaitTasksMigration(clusterArn string, timeout time.Duration, maxAt
 		}
 	}
 
-	wparams := &ecs.DescribeServicesInput{
-		Cluster:  aws.String(clusterArn),
-		Services: sArns,
+	batchSize := 10
+	batches := make([][]*string, 0, (len(sArns)+batchSize-1)/batchSize)
+	for batchSize < len(sArns) {
+		sArns, batches = sArns[batchSize:], append(batches, sArns[0:batchSize:batchSize])
 	}
-	err := a.ecs.WaitUntilServicesStableWithContext(
-		ctx,
-		wparams,
-		request.WithWaiterDelay(request.ConstantWaiterDelay(SleepInterval)),
-		request.WithWaiterMaxAttempts(maxAttempts),
-	)
-	return err
+	batches = append(batches, sArns)
+
+	for _, batchSArn := range batches {
+		wparams := &ecs.DescribeServicesInput{
+			Cluster:  aws.String(clusterArn),
+			Services: batchSArn,
+		}
+		if err := a.ecs.WaitUntilServicesStableWithContext(
+			ctx,
+			wparams,
+			request.WithWaiterDelay(request.ConstantWaiterDelay(SleepInterval)),
+			request.WithWaiterMaxAttempts(maxAttempts),
+		); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // DeregisterContainerInstance deregisters target instance from ECS cluster.
