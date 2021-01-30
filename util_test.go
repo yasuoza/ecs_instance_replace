@@ -1,8 +1,10 @@
-package ecs_instance_replace
+package ecs_instance_replace_test
 
 import (
 	"reflect"
 	"testing"
+
+	"github.com/yasuoza/ecs_instance_replace"
 )
 
 func TestSliceDifference(t *testing.T) {
@@ -44,7 +46,7 @@ func TestSliceDifference(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := SliceDifference(test.a, test.b)
+		got := ecs_instance_replace.SliceDifference(test.a, test.b)
 		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("want %v, but got %v\n", test.want, got)
 		}
