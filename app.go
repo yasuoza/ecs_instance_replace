@@ -162,7 +162,7 @@ func (a *App) UpdateAutoScalingGroupMaxSize(scalingGroup *autoscaling.Group, new
 
 // WaitContainerInstanceActive waits until container instance is ACTIVE.
 func (a *App) WaitContainerInstanceActive(clusterArn string, newDesiredCnt int64, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
 	defer cancel()
 
 	errc := make(chan error)
@@ -208,7 +208,7 @@ func (a *App) DrainTargetContainerInstance(clusterArn string, containerInstanceA
 
 // WaitTargetContainerInstanceDrained waits until container instance drained.
 func (a *App) WaitTargetContainerInstanceDrained(clusterArn string, containerInstanceArn string, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
 	defer cancel()
 
 	errc := make(chan error)
@@ -255,7 +255,7 @@ func (a *App) WaitTargetContainerInstanceDrained(clusterArn string, containerIns
 
 // WaitTasksMigration waits until cluster's services are all stable.
 func (a *App) WaitTasksMigration(clusterArn string, timeout time.Duration, maxAttempts int) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
 	defer cancel()
 
 	go func() {
@@ -344,7 +344,7 @@ func (a *App) TerminateInstance(scalingGroup *autoscaling.Group) error {
 
 // WaitInstanceTermination waits until target instance is terminated.
 func (a *App) WaitInstanceTermination(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
 	defer cancel()
 
 	go func() {
