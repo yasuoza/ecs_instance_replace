@@ -1,9 +1,6 @@
 name: test
 on:
-  push:
-    branches:
-      - '*'
-      - '!renovate/**'
+  pull_request_target:
 
 jobs:
   test:
@@ -19,6 +16,8 @@ jobs:
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2.4.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: lint
         run: go vet ./...
