@@ -3,7 +3,7 @@ module github.com/yasuoza/ecs_instance_replace
 go 1.18
 
 require (
-	github.com/aws/aws-sdk-go v1.44.62
+	github.com/aws/aws-sdk-go v1.44.63
 	github.com/mitchellh/cli v1.1.4
 )
 
